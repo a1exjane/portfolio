@@ -1,0 +1,63 @@
+README
+1.(Опционально) Создайте директорию test_vir_net
+2. Создайте файл с названием virt_net.c
+3. Скопируйте и вставьте код который нужен для компиляции в файл virt_net.c
+4. Чтобы можно было собрать код нужно создать в той же директории где и файл virt_net.c файл Makefile
+5. Скопируйте и вставьте инструкции для автоматической сборки Makefile
+6. (Предупреждение) Возможно нужно будет установить базовый набор инструментов для сборки программ из исходников build-essentials
+sudo apt install -y build-essential linux-headers-$(uname -r)
+7. Запуститье команду make в директории с файлами virt_net.c и Makefile
+8. Если все сделано правильно должны быть сообщения по типу:
+user@ubuntu:~/Desktop/ping$ make
+make -C /lib/modules/5.15.0-139-generic/build M=/home/user/Desktop/ping modules
+make[1]: Entering directory '/usr/src/linux-headers-5.15.0-139-generic'
+  CC [M]  /home/user/Desktop/ping/virt_net.o
+  MODPOST /home/user/Desktop/ping/Module.symvers
+  CC [M]  /home/user/Desktop/ping/virt_net.mod.o
+  LD [M]  /home/user/Desktop/ping/virt_net.ko
+  BTF [M] /home/user/Desktop/ping/virt_net.ko
+Skipping BTF generation for /home/user/Desktop/ping/virt_net.ko due to unavailability of vmlinux
+make[1]: Leaving directory '/usr/src/linux-headers-5.15.0-139-generic'
+9. Проверьте директорию сборки должен появиться файлы (Нужный нам файл virt_net.ko):
+Makefile  modules.order  Module.symvers  virt_net.c  virt_net.ko  virt_net.mod  virt_net.mod.c  virt_net.mod.o  virt_net.o
+10. Теперь нужно загрузить наш модуль ядра в операционную систему (Если после выполнения команды терминал не выдал ошибку значит загрузка была успешна):
+sudo insmod virt_net.ko
+11. Проверяем загруженный модель ядра:
+user@ubuntu:~/Desktop/ping$ lsmod | grep virt_net
+virt_net               20480  0
+12. На всякий случай можно проверить сообщения ядра о загрузке модуля:
+user@ubuntu:~/Desktop/ping$ dmesg | tail -5
+[ 1746.850692] vnet0: интерфейс 'vnet0' зарегистрирован
+[ 1746.850698] vnet0: модуль загружен.
+                 Запишите target IP: echo "10.0.0.2/24" > /proc/virt_net/ip_addr
+                 Затем:             ping 10.0.0.2
+[ 1746.867073] vnet0: интерфейс поднят
+13. Проверяем поднялся ли наш сетевой интерфейс:
+user@ubuntu:~/Desktop/ping$ ifconfig 
+vnet0: flags=195<UP,BROADCAST,RUNNING,NOARP>  mtu 1500
+        inet6 fe80::e768:e4dc:c491:430  prefixlen 64  scopeid 0x20<link>
+        ether ba:47:28:51:31:07  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 7  bytes 1490 (1.4 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+14. Если интерфейс поднялся нужно проверить есть ли у него IP адрес. В нашем случае его нет.
+15. Чтобы проверить наш модуль ядра нужно ему присовить IP адрес:
+echo -n "10.0.0.2/24" | sudo tee /proc/sys/net/virt_net/ip_addr
+16. Проверяем наличие IP адреса:
+user@ubuntu:~/Desktop/ping$ ifconfig 
+vnet0: flags=195<UP,BROADCAST,RUNNING,NOARP>  mtu 1500
+        inet 10.0.0.1  netmask 255.255.255.0  broadcast 0.0.0.0
+        inet6 fe80::e768:e4dc:c491:430  prefixlen 64  scopeid 0x20<link>
+        ether ba:47:28:51:31:07  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 23  bytes 5122 (5.1 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+17. Если IP адрес присвоен можно попробовать достучаться до него:
+user@ubuntu:~/Desktop/ping$ ping 10.0.0.2
+PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.
+64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=0.038 ms
+64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=0.024 ms
+64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=0.022 ms
+
